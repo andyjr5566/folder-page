@@ -102,6 +102,17 @@
     "dependencies": [],
     "defaultOrder": 50,
     "defaultEnabled": true,
-    "defaultOptions": {}
+    "defaultOptions": {
+      "showFolderCount": true,
+      "showSubfolders": true
+    },
+    "optionSchema": {
+      "showFolderCount": {
+        "type": "boolean"
+      },
+      "showSubfolders": {
+        "type": "boolean"
+      }
+    }
   }
 }
