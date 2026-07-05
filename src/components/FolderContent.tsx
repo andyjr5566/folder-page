@@ -6,7 +6,7 @@ import type {
   QuartzPluginData,
   SortFn,
 } from "@quartz-community/types";
-import { PageList } from "./PageList";
+import { PageList, byChapterNumeric, byDateAndAlphabeticalFolderFirst } from "./PageList";
 import { htmlToJsx } from "@quartz-community/utils/jsx";
 import type { ComponentChildren } from "preact";
 import type { Root } from "hast";
@@ -16,12 +16,13 @@ import style from "./styles/listPage.scss";
 interface FolderContentOptions {
   showFolderCount: boolean;
   showSubfolders: boolean;
-  sort?: SortFn;
+  sortBy?: "date" | "alphabetical" | "chapter";
 }
 
 const defaultOptions: FolderContentOptions = {
   showFolderCount: true,
   showSubfolders: true,
+  sortBy: "chapter",
 };
 
 interface TrieNode {
@@ -169,14 +170,30 @@ export default ((opts?: Partial<FolderContentOptions>) => {
     }
 
     const cssClasses =
-      ((fileData as { frontmatter?: { cssclasses?: string[] } } | undefined)?.frontmatter
-        ?.cssclasses as string[] | undefined) ?? [];
-    const classes = cssClasses.join(" ");
-    const listProps = {
-      ...props,
-      sort: options.sort,
-      allFiles: allPagesInFolder,
-    };
+          ((fileData as { frontmatter?: { cssclasses?: string[] } } | undefined)?.frontmatter
+            ?.cssclasses as string[] | undefined) ?? [];
+        const classes = cssClasses.join(" ");
+    
+        // Select sort function based on sortBy option
+                        let sortFn: SortFn;
+                        switch (options.sortBy) {
+                          case "chapter":
+                            sortFn = byChapterNumeric as unknown as SortFn;
+                            break;
+                          case "alphabetical":
+                            sortFn = byDateAndAlphabeticalFolderFirst(cfg);
+                            break;
+                          case "date":
+                          default:
+                            sortFn = byDateAndAlphabeticalFolderFirst(cfg);
+                            break;
+                        }
+
+        const listProps = {
+          ...props,
+          sort: sortFn,
+          allFiles: allPagesInFolder,
+        };
 
     const hastRoot = tree as Root;
     const content =

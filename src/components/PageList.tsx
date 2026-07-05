@@ -6,6 +6,36 @@ import type { FullSlug } from "../util/path";
 export type { SortFn } from "@quartz-community/types";
 export { byDateAndAlphabetical };
 
+// Custom sort: numeric chapter order from titles like "第1章", "第10章"
+const extractChapter = (title: string | undefined): number => {
+  if (!title) return Number.MAX_SAFE_INTEGER;
+  const match = title.match(/第(\d+)章/);
+  return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+};
+
+export function byChapterNumeric(f1: any, f2: any): number {
+  const f1IsFolder = isFolderPath(f1.slug ?? "");
+  const f2IsFolder = isFolderPath(f2.slug ?? "");
+  if (f1IsFolder && !f2IsFolder) return -1;
+  if (!f1IsFolder && f2IsFolder) return 1;
+
+  if (f1.dates && f2.dates) {
+    return (getDate(f2)?.getTime() ?? 0) - (getDate(f1)?.getTime() ?? 0);
+  } else if (f1.dates && !f2.dates) {
+    return -1;
+  } else if (!f1.dates && f2.dates) {
+    return 1;
+  }
+  const f1Title = f1.frontmatter?.title ?? "";
+  const f2Title = f2.frontmatter?.title ?? "";
+  const num1 = extractChapter(f1Title ?? "");
+  const num2 = extractChapter(f2Title ?? "");
+  if (num1 !== Number.MAX_SAFE_INTEGER || num2 !== Number.MAX_SAFE_INTEGER) {
+    return num1 - num2;
+  }
+  return f1Title.localeCompare(f2Title);
+}
+
 export function byDateAndAlphabeticalFolderFirst(_cfg: unknown): SortFn {
   return (f1, f2) => {
     const f1IsFolder = isFolderPath(f1.slug ?? "");
