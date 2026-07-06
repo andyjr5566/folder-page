@@ -380,6 +380,37 @@ function u2(e2, t2, n2, o2, i2, u3) {
 }
 
 // src/components/PageList.tsx
+var extractChapter = (value) => {
+  const match = value?.match(/第\s*(\d+)\s*章/u);
+  return match?.[1] ? Number.parseInt(match[1], 10) : void 0;
+};
+var byChapterNumeric = (f1, f22) => {
+  const f1IsFolder = isFolderPath(f1.slug ?? "");
+  const f2IsFolder = isFolderPath(f22.slug ?? "");
+  if (f1IsFolder && !f2IsFolder) return -1;
+  if (!f1IsFolder && f2IsFolder) return 1;
+  const f1Title = f1.frontmatter?.title ?? "";
+  const f2Title = f22.frontmatter?.title ?? "";
+  const num1 = extractChapter(f1Title) ?? extractChapter(f1.slug);
+  const num2 = extractChapter(f2Title) ?? extractChapter(f22.slug);
+  if (num1 !== void 0 && num2 !== void 0) {
+    return num1 - num2;
+  }
+  if (num1 !== void 0) {
+    return -1;
+  }
+  if (num2 !== void 0) {
+    return 1;
+  }
+  if (f1.dates && f22.dates) {
+    return (getDate(f22)?.getTime() ?? 0) - (getDate(f1)?.getTime() ?? 0);
+  } else if (f1.dates && !f22.dates) {
+    return -1;
+  } else if (!f1.dates && f22.dates) {
+    return 1;
+  }
+  return f1Title.localeCompare(f2Title, void 0, { numeric: true });
+};
 function byDateAndAlphabeticalFolderFirst(_cfg) {
   return (f1, f22) => {
     const f1IsFolder = isFolderPath(f1.slug ?? "");
@@ -395,7 +426,7 @@ function byDateAndAlphabeticalFolderFirst(_cfg) {
     }
     const f1Title = f1.frontmatter?.title?.toLowerCase() ?? "";
     const f2Title = f22.frontmatter?.title?.toLowerCase() ?? "";
-    return f1Title.localeCompare(f2Title);
+    return f1Title.localeCompare(f2Title, void 0, { numeric: true });
   };
 }
 function DateDisplay({ date, locale }) {
@@ -2699,7 +2730,8 @@ var listPage_default = "ul.section-ul {\n  list-style: none;\n  margin-top: 2em;
 // src/components/FolderContent.tsx
 var defaultOptions = {
   showFolderCount: true,
-  showSubfolders: true
+  showSubfolders: true,
+  sortBy: "chapter"
 };
 function concatenateResources(...resources) {
   const result = resources.filter((r2) => r2 !== void 0).flat();
@@ -2805,9 +2837,22 @@ var FolderContent_default = ((opts) => {
     }
     const cssClasses = fileData?.frontmatter?.cssclasses ?? [];
     const classes = cssClasses.join(" ");
+    let sortFn;
+    switch (options.sortBy) {
+      case "chapter":
+        sortFn = byChapterNumeric;
+        break;
+      case "alphabetical":
+        sortFn = byDateAndAlphabeticalFolderFirst();
+        break;
+      case "date":
+      default:
+        sortFn = byDateAndAlphabeticalFolderFirst();
+        break;
+    }
     const listProps = {
       ...props,
-      sort: options.sort,
+      sort: sortFn,
       allFiles: allPagesInFolder
     };
     const hastRoot = tree;

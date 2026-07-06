@@ -1,9 +1,9 @@
-import { SortFn, QuartzComponent } from '@quartz-community/types';
+import { QuartzComponent } from '@quartz-community/types';
 
 interface FolderContentOptions {
     showFolderCount: boolean;
     showSubfolders: boolean;
-    sort?: SortFn;
+    sortBy?: "date" | "alphabetical" | "chapter";
 }
 declare const _default: (opts?: Partial<FolderContentOptions>) => QuartzComponent;
 

@@ -6,19 +6,33 @@ import type { FullSlug } from "../util/path";
 export type { SortFn } from "@quartz-community/types";
 export { byDateAndAlphabetical };
 
-// Custom sort: numeric chapter order from titles like "第1章", "第10章"
-const extractChapter = (title: string | undefined): number => {
-  if (!title) return Number.MAX_SAFE_INTEGER;
-  const match = title.match(/第(\d+)章/);
-  return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+// Custom sort: numeric chapter order from titles or slugs like "第1章", "第10章".
+const extractChapter = (value: string | undefined): number | undefined => {
+  const match = value?.match(/第\s*(\d+)\s*章/u);
+  return match?.[1] ? Number.parseInt(match[1], 10) : undefined;
 };
 
-export function byChapterNumeric(f1: any, f2: any): number {
+export const byChapterNumeric: SortFn = (f1, f2) => {
   const f1IsFolder = isFolderPath(f1.slug ?? "");
   const f2IsFolder = isFolderPath(f2.slug ?? "");
   if (f1IsFolder && !f2IsFolder) return -1;
   if (!f1IsFolder && f2IsFolder) return 1;
 
+  const f1Title = f1.frontmatter?.title ?? "";
+  const f2Title = f2.frontmatter?.title ?? "";
+  const num1 = extractChapter(f1Title) ?? extractChapter(f1.slug);
+  const num2 = extractChapter(f2Title) ?? extractChapter(f2.slug);
+  if (num1 !== undefined && num2 !== undefined) {
+    return num1 - num2;
+  }
+  if (num1 !== undefined) {
+    return -1;
+  }
+  if (num2 !== undefined) {
+    return 1;
+  }
+
+  // Fall back to date sorting for non-chapter titles
   if (f1.dates && f2.dates) {
     return (getDate(f2)?.getTime() ?? 0) - (getDate(f1)?.getTime() ?? 0);
   } else if (f1.dates && !f2.dates) {
@@ -26,15 +40,8 @@ export function byChapterNumeric(f1: any, f2: any): number {
   } else if (!f1.dates && f2.dates) {
     return 1;
   }
-  const f1Title = f1.frontmatter?.title ?? "";
-  const f2Title = f2.frontmatter?.title ?? "";
-  const num1 = extractChapter(f1Title ?? "");
-  const num2 = extractChapter(f2Title ?? "");
-  if (num1 !== Number.MAX_SAFE_INTEGER || num2 !== Number.MAX_SAFE_INTEGER) {
-    return num1 - num2;
-  }
-  return f1Title.localeCompare(f2Title);
-}
+  return f1Title.localeCompare(f2Title, undefined, { numeric: true });
+};
 
 export function byDateAndAlphabeticalFolderFirst(_cfg: unknown): SortFn {
   return (f1, f2) => {
@@ -52,7 +59,7 @@ export function byDateAndAlphabeticalFolderFirst(_cfg: unknown): SortFn {
     }
     const f1Title = f1.frontmatter?.title?.toLowerCase() ?? "";
     const f2Title = f2.frontmatter?.title?.toLowerCase() ?? "";
-    return f1Title.localeCompare(f2Title);
+    return f1Title.localeCompare(f2Title, undefined, { numeric: true });
   };
 }
 
